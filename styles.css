@@ -21,8 +21,22 @@ body {
 
 h1 {
     color: #333;
-    margin-bottom: 30px;
+    margin-bottom: 10px;
     text-align: center;
+}
+
+.header-controls {
+    text-align: center;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.header-controls button {
+    padding: 8px 15px;
+    font-size: 12px;
 }
 
 /* ========== 入力セクション ========== */
@@ -270,6 +284,16 @@ input[type="date"] {
     background-color: #da190b;
 }
 
+.export-btn {
+    background-color: #2196F3;
+    padding: 8px 15px;
+    font-size: 12px;
+}
+
+.export-btn:hover {
+    background-color: #0b7dda;
+}
+
 /* ========== 空メッセージ ========== */
 .empty-message {
     text-align: center;
@@ -286,4 +310,24 @@ input[type="date"] {
     cursor: help;
     text-decoration: underline dotted;
     word-break: break-all;
+}
+
+.save-status {
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.save-status.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.save-status.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
 }

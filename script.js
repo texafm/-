@@ -1,6 +1,7 @@
 let rowCount = 0;
 let sortColumn = null;
 let sortDirection = 'asc';
+const STORAGE_KEY = 'quotation_system_data';
 
 const customerColumns = [
     { name: '注文書提出', index: 7 },
@@ -11,20 +12,105 @@ const customerColumns = [
 ];
 
 const vendorColumns = [
-    // 業者①
     { name: '注文書①', index: 12 },
     { name: '請書受領①', index: 13 },
     { name: '請求書①', index: 14 },
-    // 業者②
     { name: '注文書②', index: 15 },
     { name: '請書受領②', index: 16 },
     { name: '請求書②', index: 17 },
-    // 業者③
     { name: '注文書③', index: 18 },
     { name: '請書受領③', index: 19 },
     { name: '請求書③', index: 20 }
 ];
 
+// ========== データ保存機能 ==========
+function saveToLocalStorage() {
+    const data = [];
+    const rows = document.querySelectorAll('#tableBody tr');
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = {
+            estimateNo: cells[1].textContent,
+            subject: cells[2].textContent,
+            billingMonth: cells[3].textContent,
+            completionDate: cells[4].textContent,
+            salePrice: cells[5].textContent,
+            dates: []
+        };
+
+        // 日付データを保存
+        for (let i = 7; i < cells.length - 1; i++) {
+            const input = cells[i].querySelector('input[type="date"]');
+            rowData.dates.push(input ? input.value : '');
+        }
+
+        data.push(rowData);
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    showSaveStatus();
+}
+
+function loadFromLocalStorage() {
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    
+    data.forEach(rowData => {
+        rowCount++;
+        const tableBody = document.getElementById('tableBody');
+        const newRow = document.createElement('tr');
+        newRow.id = `row-${rowCount}`;
+        newRow.dataset.rowNum = rowCount;
+
+        let rowHTML = `
+            <td class="row-number" data-sort-value="${rowCount}">${rowCount}</td>
+            <td data-sort-value="${rowData.estimateNo}">${escapeHtml(rowData.estimateNo)}</td>
+            <td class="subject-tooltip" title="${escapeHtml(rowData.subject)}" data-sort-value="${rowData.subject}">${escapeHtml(rowData.subject)}</td>
+            <td data-sort-value="${rowData.billingMonth}">${rowData.billingMonth}</td>
+            <td data-sort-value="${rowData.completionDate}">${rowData.completionDate}</td>
+            <td data-sort-value="${rowData.salePrice}">${rowData.salePrice}</td>
+            <td></td>
+        `;
+
+        // 日付データを復元
+        rowData.dates.forEach((dateValue, index) => {
+            const vendorNum = Math.floor(index / 3) + 1;
+            let classStr = 'vendor-group-' + vendorNum;
+            if (index % 3 === 2) classStr += ' vendor-last';
+
+            rowHTML += `
+                <td class="${classStr}">
+                    <input type="date" class="date-input" data-row="${rowCount}" data-column="${index + 7}" value="${dateValue}" onchange="saveData()">
+                </td>
+            `;
+        });
+
+        rowHTML += `
+            <td>
+                <button class="delete-btn" onclick="deleteRow(${rowCount})">削除</button>
+            </td>
+        `;
+
+        newRow.innerHTML = rowHTML;
+        tableBody.appendChild(newRow);
+    });
+
+    updateEmptyMessage();
+}
+
+function showSaveStatus() {
+    const statusEl = document.getElementById('saveStatus');
+    statusEl.style.display = 'block';
+    setTimeout(() => {
+        statusEl.style.display = 'none';
+    }, 3000);
+}
+
+function saveData() {
+    saveToLocalStorage();
+}
+
+// ========== 行追加機能 ==========
 function addRow() {
     const estimateNo = document.getElementById('estimateNo').value.trim();
     const subject = document.getElementById('subject').value.trim();
@@ -53,16 +139,14 @@ function addRow() {
         <td></td>
     `;
 
-    // お客様関連の日付列
     customerColumns.forEach((col) => {
         rowHTML += `
             <td>
-                <input type="date" class="date-input" data-row="${rowCount}" data-column="${col.index}">
+                <input type="date" class="date-input" data-row="${rowCount}" data-column="${col.index}" onchange="saveData()">
             </td>
         `;
     });
 
-    // 業者関連の日付列（3グループ×3列）
     vendorColumns.forEach((col, index) => {
         const vendorNum = Math.floor(index / 3) + 1;
         let classStr = 'vendor-group-' + vendorNum;
@@ -70,12 +154,11 @@ function addRow() {
         
         rowHTML += `
             <td class="${classStr}">
-                <input type="date" class="date-input" data-row="${rowCount}" data-column="${col.index}">
+                <input type="date" class="date-input" data-row="${rowCount}" data-column="${col.index}" onchange="saveData()">
             </td>
         `;
     });
 
-    // 削除ボタン
     rowHTML += `
         <td>
             <button class="delete-btn" onclick="deleteRow(${rowCount})">削除</button>
@@ -86,8 +169,8 @@ function addRow() {
     tableBody.appendChild(newRow);
 
     updateEmptyMessage();
+    saveData();
 
-    // フォームをクリア
     document.getElementById('estimateNo').value = '';
     document.getElementById('subject').value = '';
     document.getElementById('billingMonth').value = '';
@@ -101,6 +184,7 @@ function deleteRow(rowNum) {
         const row = document.getElementById(`row-${rowNum}`);
         row.remove();
         updateEmptyMessage();
+        saveData();
     }
 }
 
@@ -114,11 +198,11 @@ function updateEmptyMessage() {
     }
 }
 
+// ========== ソート機能 ==========
 function sortTable(columnIndex) {
     const tableBody = document.getElementById('tableBody');
     const rows = Array.from(tableBody.querySelectorAll('tr'));
 
-    // ソート方向の切り替え
     if (sortColumn === columnIndex) {
         sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
@@ -133,7 +217,6 @@ function sortTable(columnIndex) {
         let aValue = aCell.dataset.sortValue || aCell.textContent.trim();
         let bValue = bCell.dataset.sortValue || bCell.textContent.trim();
 
-        // 数値判定
         if (!isNaN(aValue) && !isNaN(bValue)) {
             aValue = parseFloat(aValue);
             bValue = parseFloat(bValue);
@@ -151,36 +234,65 @@ function sortTable(columnIndex) {
         return 0;
     });
 
-    // DOMに反映
     rows.forEach(row => tableBody.appendChild(row));
 }
 
-function setRowType(rowNum, type) {
-    resetRowColors(rowNum);
-    const row = document.getElementById(`row-${rowNum}`);
-    const cells = row.querySelectorAll('td');
+// ========== CSVエクスポート ==========
+function exportToCSV() {
+    const headers = [
+        'No', '見積No', '件名', '請求月', '完了予定日', '売価',
+        '注文書提出', '注文書受領', '請書依頼', '請書スキャン', '請書提出',
+        '業者①注文書', '業者①請書受領', '業者①請求書',
+        '業者②注文書', '業者②請書受領', '業者②請求書',
+        '業者③注文書', '業者③請書受領', '業者③請求書'
+    ];
 
-    if (type === 'クラウド') {
-        // 業者注文書提出①～③を青色に
-        [12, 15, 18].forEach(colIndex => {
-            cells[colIndex].classList.add('blue-cell');
-        });
-    } else if (type === '内製') {
-        // 業者注文書提出①以降をすべて赤色に
-        for (let i = 12; i < cells.length - 1; i++) {
-            cells[i].classList.add('red-cell');
+    const rows = document.querySelectorAll('#tableBody tr');
+    const csvData = [headers.join(',')];
+
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = [];
+        
+        for (let i = 0; i < cells.length - 1; i++) {
+            const input = cells[i].querySelector('input[type="date"]');
+            if (input) {
+                rowData.push(input.value);
+            } else {
+                rowData.push(cells[i].textContent.trim());
+            }
+        }
+        
+        csvData.push(rowData.map(data => `"${data}"`).join(','));
+    });
+
+    const csv = csvData.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute('href', url);
+    link.setAttribute('download', `quotation_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// ========== すべてのデータを削除 ==========
+function clearAllData() {
+    if (confirm('本当にすべてのデータを削除しますか？\n\nこの操作は取り消せません。')) {
+        if (confirm('もう一度確認します。本当に削除しますか？')) {
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('tableBody').innerHTML = '';
+            rowCount = 0;
+            updateEmptyMessage();
+            alert('すべてのデータが削除されました。');
         }
     }
 }
 
-function resetRowColors(rowNum) {
-    const row = document.getElementById(`row-${rowNum}`);
-    const cells = row.querySelectorAll('td');
-    cells.forEach(cell => {
-        cell.classList.remove('blue-cell', 'red-cell');
-    });
-}
-
+// ========== ユーティリティ関数 ==========
 function formatMonth(monthString) {
     if (!monthString) return '';
     const [year, month] = monthString.split('-');
@@ -208,7 +320,7 @@ function escapeHtml(text) {
     return text.replace(/[&<>"']/g, m => map[m]);
 }
 
-// Enterキーで追加
+// ========== 初期化 ==========
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('salePrice').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -216,5 +328,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    loadFromLocalStorage();
     updateEmptyMessage();
 });

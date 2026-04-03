@@ -9,6 +9,14 @@
 <body>
     <div class="container">
         <h1>📋 見積管理システム</h1>
+        <div id="saveStatus" class="save-status info" style="display:none;">
+            ✅ データは自動で保存されています
+        </div>
+
+        <div class="header-controls">
+            <button onclick="exportToCSV()" class="export-btn">📥 CSVダウンロード</button>
+            <button onclick="clearAllData()">🗑️ すべてのデータを削除</button>
+        </div>
 
         <div class="input-section">
             <div class="input-row">
