@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>見積管理システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', 'Hiragino Sans', sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* ========== 入力セクション ========== */
+        .input-section {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="month"],
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus,
+        input[type="date"]:focus,
+        input[type="month"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* ========== テーブルセクション ========== */
+        .table-section {
+            overflow-x: auto;
+            overflow-y: visible;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0;
+            min-width: 2200px;
+        }
+
+        /* ========== テーブルヘッダー ========== */
+        th {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            white-space: nowrap;
+            border: 1px solid #388e3c;
+        }
+
+        .section-header {
+            background-color: #66bb6a;
+            font-weight: bold;
+            padding: 15px 12px;
+            border: 2px solid #388e3c;
+        }
+
+        .sub-header th {
+            background-color: #4CAF50;
+            padding: 12px;
+            font-size: 13px;
+            border: 1px solid #388e3c;
+        }
+
+        .vendor-section {
+            background-color: #4CAF50;
+            border-left: 3px solid #fff;
+            border-right: 3px solid #fff;
+            padding: 12px;
+            font-weight: bold;
+        }
+
+        .vendor-sub-header th {
+            background-color: #81c784;
+            border: 1px solid #388e3c;
+            padding: 10px;
+            font-size: 11px;
+        }
+
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+
+        .sortable:hover {
+            background-color: #45a049;
+        }
+
+        /* ========== テーブルボディ ========== */
+        td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            font-size: 12px;
+            text-align: center;
+            min-width: 80px;
+        }
+
+        td:nth-child(1) {
+            text-align: center;
+            min-width: 40px;
+            font-weight: bold;
+            background-color: #e8f5e9;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+
+        td:nth-child(2) {
+            text-align: center;
+            min-width: 100px;
+            position: sticky;
+            left: 40px;
+            z-index: 5;
+        }
+
+        td:nth-child(3) {
+            text-align: left;
+            min-width: 150px;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            position: sticky;
+            left: 140px;
+            z-index: 5;
+        }
+
+        td:nth-child(4),
+        td:nth-child(5),
+        td:nth-child(6) {
+            text-align: center;
+            min-width: 90px;
+        }
+
+        td:nth-child(7) {
+            min-width: 50px;
+            background-color: #f9f9f9;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        tr:hover {
+            background-color: #f0f0f0;
+        }
+
+        tr:nth-child(even) td:nth-child(1),
+        tr:nth-child(even) td:nth-child(2),
+        tr:nth-child(even) td:nth-child(3) {
+            background-color: #e8f5e9;
+        }
+
+        /* ========== 業者欄グループ ========== */
+        .vendor-group-1 {
+            border-right: 3px solid #ddd;
+        }
+
+        .vendor-group-2 {
+            border-right: 3px solid #ddd;
+        }
+
+        .vendor-group-3 {
+            border-right: 3px solid #e0e0e0;
+        }
+
+        /* ========== 日付入力 ========== */
+        input[type="date"] {
+            width: 95%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        /* ========== カラーセル ========== */
+        .blue-cell {
+            background-color: #bbdefb !important;
+        }
+
+        .red-cell {
+            background-color: #ffcdd2 !important;
+        }
+
+        /* ========== ボタン ========== */
+        .delete-btn {
+            background-color: #f44336;
+            padding: 6px 12px;
+            font-size: 11px;
+            min-width: 60px;
+            margin: 0 auto;
+        }
+
+        .delete-btn:hover {
+            background-color: #da190b;
+        }
+
+        /* ========== 空メッセージ ========== */
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-style: italic;
+            background-color: #f9f9f9;
+            border: 1px dashed #ddd;
+            border-radius: 6px;
+        }
+
+        /* ========== ツールチップ ========== */
+        .subject-tooltip {
+            cursor: help;
+            text-decoration: underline dotted;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 見積管理システム</h1>
+
+        <div class="input-section">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="estimateNo">見積No</label>
+                    <input type="text" id="estimateNo" placeholder="例：EST-2024-001">
+                </div>
+                <div class="input-group">
+                    <label for="subject">件名</label>
+                    <input type="text" id="subject" placeholder="例：システム開発プロジェクト">
+                </div>
+                <div class="input-group">
+                    <label for="billingMonth">請求月</label>
+                    <input type="month" id="billingMonth">
+                </div>
+                <div class="input-group">
+                    <label for="completionDate">完了予定日</label>
+                    <input type="date" id="completionDate">
+                </div>
+                <div class="input-group">
+                    <label for="salePrice">売価</label>
+                    <input type="number" id="salePrice" placeholder="0" min="0">
+                </div>
+                <button onclick="addRow()">追加</button>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th colspan="7" class="section-header">基本情報</th>
+                        <th colspan="5" class="section-header">お客様関連</th>
+                        <th colspan="9" class="section-header">業者関連</th>
+                        <th rowspan="2" style="min-width: 60px;">操作</th>
+                    </tr>
+                    <tr class="sub-header">
+                        <th class="sortable" onclick="sortTable(0)">No ⇅</th>
+                        <th class="sortable" onclick="sortTable(1)">見積No ⇅</th>
+                        <th class="sortable" onclick="sortTable(2)">件名 ⇅</th>
+                        <th class="sortable" onclick="sortTable(3)">請求月 ⇅</th>
+                        <th class="sortable" onclick="sortTable(4)">完了予定日 ⇅</th>
+                        <th class="sortable" onclick="sortTable(5)">売価 ⇅</th>
+                        <th style="min-width: 50px;"></th>
+
+                        <th style="min-width: 80px;">注文書提出</th>
+                        <th style="min-width: 80px;">注文書受領</th>
+                        <th style="min-width: 80px;">請書依頼</th>
+                        <th style="min-width: 80px;">請書スキャン</th>
+                        <th style="min-width: 80px;">請書提出</th>
+
+                        <th colspan="3" class="vendor-section">業者①</th>
+                        <th colspan="3" class="vendor-section">業者②</th>
+                        <th colspan="3" class="vendor-section">業者③</th>
+                    </tr>
+                    <tr class="vendor-sub-header">
+                        <th colspan="7"></th>
+                        <th colspan="5"></th>
+                        <th style="min-width: 70px;">注文書</th>
+                        <th style="min-width: 70px;">請書受領</th>
+                        <th style="min-width: 70px;">請求書</th>
+                        <th style="min-width: 70px;">注文書</th>
+                        <th style="min-width: 70px;">請書受領</th>
+                        <th style="min-width: 70px;">請求書</th>
+                        <th style="min-width: 70px;">注文書</th>
+                        <th style="min-width: 70px;">請書受領</th>
+                        <th style="min-width: 70px;">請求書</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+            <div id="emptyMessage" class="empty-message">
+                まだデータがありません。上のフォームから追加してください。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let rowCount = 0;
+        let sortColumn = null;
+        let sortDirection = 'asc';
+
+        const customerColumns = [
+            { name: '注文書提出', index: 7 },
+            { name: '注文書受領', index: 8 },
+            { name: '請書依頼', index: 9 },
+            { name: '請書スキャン', index: 10 },
+            { name: '請書提出', index: 11 }
+        ];
+
+        const vendorColumns = [
+            // 業者①
+            { name: '注文書①', index: 12 },
+            { name: '請書受領①', index: 13 },
+            { name: '請求書①', index: 14 },
+            // 業者②
+            { name: '注文書②', index: 15 },
+            { name: '請書受領②', index: 16 },
+            { name: '請求書②', index: 17 },
+            // 業者③
+            { name: '注文書③', index: 18 },
+            { name: '請書受領③', index: 19 },
+            { name: '請求書③', index: 20 }
+        ];
+
+        function addRow() {
+            const estimateNo = document.getElementById('estimateNo').value.trim();
+            const subject = document.getElementById('subject').value.trim();
+            const billingMonth = document.getElementById('billingMonth').value;
+            const completionDate = document.getElementById('completionDate').value;
+            const salePrice = document.getElementById('salePrice').value;
+
+            if (!estimateNo || !subject || !billingMonth || !completionDate || !salePrice) {
+                alert('すべての項目を入力してください');
+                return;
+            }
+
+            rowCount++;
+            const tableBody = document.getElementById('tableBody');
+            const newRow = document.createElement('tr');
+            newRow.id = `row-${rowCount}`;
+            newRow.dataset.rowNum = rowCount;
+
+            let rowHTML = `
+                <td class="row-number" data-sort-value="${rowCount}">${rowCount}</td>
+                <td data-sort-value="${estimateNo}">${escapeHtml(estimateNo)}</td>
+                <td class="subject-tooltip" title="${escapeHtml(subject)}" data-sort-value="${subject}">${escapeHtml(subject)}</td>
+                <td data-sort-value="${billingMonth}">${formatMonth(billingMonth)}</td>
+                <td data-sort-value="${completionDate}">${formatDate(completionDate)}</td>
+                <td data-sort-value="${parseInt(salePrice)}">${parseInt(salePrice).toLocaleString()}円</td>
+                <td></td>
+            `;
+
+            // お客様関連の日付列
+            customerColumns.forEach((col) => {
+                rowHTML += `
+                    <td>
+                        <input type="date" class="date-input" data-row="${rowCount}" data-column="${col.index}">
+                    </td>
+                `;
+            });
+
+            // 業者関連の日付列（3グループ×3列）
+            vendorColumns.forEach((col, index) => {
+                const vendorNum = Math.floor(index / 3) + 1;
+                let classStr = 'vendor-group-' + vendorNum;
+                if (index % 3 === 2) classStr += ' vendor-last';
+                
+                rowHTML += `
+                    <td class="${classStr}">
+                        <input type="date" class="date-input" data-row="${rowCount}" data-column="${col.index}">
+                    </td>
+                `;
+            });
+
+            // 削除ボタン
+            rowHTML += `
+                <td>
+                    <button class="delete-btn" onclick="deleteRow(${rowCount})">削除</button>
+                </td>
+            `;
+
+            newRow.innerHTML = rowHTML;
+            tableBody.appendChild(newRow);
+
+            updateEmptyMessage();
+
+            // フォームをクリア
+            document.getElementById('estimateNo').value = '';
+            document.getElementById('subject').value = '';
+            document.getElementById('billingMonth').value = '';
+            document.getElementById('completionDate').value = '';
+            document.getElementById('salePrice').value = '';
+            document.getElementById('estimateNo').focus();
+        }
+
+        function deleteRow(rowNum) {
+            if (confirm('この行を削除しますか？')) {
+                const row = document.getElementById(`row-${rowNum}`);
+                row.remove();
+                updateEmptyMessage();
+            }
+        }
+
+        function updateEmptyMessage() {
+            const tableBody = document.getElementById('tableBody');
+            const emptyMessage = document.getElementById('emptyMessage');
+            if (tableBody.children.length === 0) {
+                emptyMessage.style.display = 'block';
+            } else {
+                emptyMessage.style.display = 'none';
+            }
+        }
+
+        function sortTable(columnIndex) {
+            const tableBody = document.getElementById('tableBody');
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+            // ソート方向の切り替え
+            if (sortColumn === columnIndex) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = columnIndex;
+                sortDirection = 'asc';
+            }
+
+            rows.sort((a, b) => {
+                const aCell = a.querySelectorAll('td')[columnIndex];
+                const bCell = b.querySelectorAll('td')[columnIndex];
+
+                let aValue = aCell.dataset.sortValue || aCell.textContent.trim();
+                let bValue = bCell.dataset.sortValue || bCell.textContent.trim();
+
+                // 数値判定
+                if (!isNaN(aValue) && !isNaN(bValue)) {
+                    aValue = parseFloat(aValue);
+                    bValue = parseFloat(bValue);
+                } else {
+                    aValue = aValue.toLowerCase();
+                    bValue = bValue.toLowerCase();
+                }
+
+                if (aValue < bValue) {
+                    return sortDirection === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortDirection === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+
+            // DOMに反映
+            rows.forEach(row => tableBody.appendChild(row));
+        }
+
+        function setRowType(rowNum, type) {
+            resetRowColors(rowNum);
+            const row = document.getElementById(`row-${rowNum}`);
+            const cells = row.querySelectorAll('td');
+
+            if (type === 'クラウド') {
+                // 業者注文書提出①～③を青色に
+                [12, 15, 18].forEach(colIndex => {
+                    cells[colIndex].classList.add('blue-cell');
+                });
+            } else if (type === '内製') {
+                // 業者注文書提出①以降をすべて赤色に
+                for (let i = 12; i < cells.length - 1; i++) {
+                    cells[i].classList.add('red-cell');
+                }
+            }
+        }
+
+        function resetRowColors(rowNum) {
+            const row = document.getElementById(`row-${rowNum}`);
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.classList.remove('blue-cell', 'red-cell');
+            });
+        }
+
+        function formatMonth(monthString) {
+            if (!monthString) return '';
+            const [year, month] = monthString.split('-');
+            return `${year}年${month}月`;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString + 'T00:00:00');
+            return date.toLocaleDateString('ja-JP', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).replace(/\//g, '/');
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Enterキーで追加
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('salePrice').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addRow();
+                }
+            });
+
+            updateEmptyMessage();
+        });
+    </script>
+</body>
+</html>
