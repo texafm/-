@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>見積管理システム</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>📋 見積管理システム</h1>
+
+        <div class="input-section">
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="estimateNo">見積No</label>
+                    <input type="text" id="estimateNo" placeholder="例：EST-2024-001">
+                </div>
+                <div class="input-group">
+                    <label for="subject">件名</label>
+                    <input type="text" id="subject" placeholder="例：システム開発プロジェクト">
+                </div>
+                <div class="input-group">
+                    <label for="billingMonth">請求月</label>
+                    <input type="month" id="billingMonth">
+                </div>
+                <div class="input-group">
+                    <label for="completionDate">完了予定日</label>
+                    <input type="date" id="completionDate">
+                </div>
+                <div class="input-group">
+                    <label for="salePrice">売価</label>
+                    <input type="number" id="salePrice" placeholder="0" min="0">
+                </div>
+                <button onclick="addRow()">追加</button>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th colspan="7" class="section-header">基本情報</th>
+                        <th colspan="5" class="section-header">お客様関連</th>
+                        <th colspan="9" class="section-header">業者関連</th>
+                        <th rowspan="2" style="min-width: 60px;">操作</th>
+                    </tr>
+                    <tr class="sub-header">
+                        <th class="sortable" onclick="sortTable(0)">No ⇅</th>
+                        <th class="sortable" onclick="sortTable(1)">見積No ⇅</th>
+                        <th class="sortable" onclick="sortTable(2)">件名 ⇅</th>
+                        <th class="sortable" onclick="sortTable(3)">請求月 ⇅</th>
+                        <th class="sortable" onclick="sortTable(4)">完了予定日 ⇅</th>
+                        <th class="sortable" onclick="sortTable(5)">売価 ⇅</th>
+                        <th style="min-width: 50px;"></th>
+
+                        <th style="min-width: 80px;">注文書提出</th>
+                        <th style="min-width: 80px;">注文書受領</th>
+                        <th style="min-width: 80px;">請書依頼</th>
+                        <th style="min-width: 80px;">請書スキャン</th>
+                        <th style="min-width: 80px;">請書提出</th>
+
+                        <th colspan="3" class="vendor-section">業者①</th>
+                        <th colspan="3" class="vendor-section">業者②</th>
+                        <th colspan="3" class="vendor-section">業者③</th>
+                    </tr>
+                    <tr class="vendor-sub-header">
+                        <th colspan="7"></th>
+                        <th colspan="5"></th>
+                        <th style="min-width: 70px;">注文書</th>
+                        <th style="min-width: 70px;">請書受領</th>
+                        <th style="min-width: 70px;">請求書</th>
+                        <th style="min-width: 70px;">注文書</th>
+                        <th style="min-width: 70px;">請書受領</th>
+                        <th style="min-width: 70px;">請求書</th>
+                        <th style="min-width: 70px;">注文書</th>
+                        <th style="min-width: 70px;">請書受領</th>
+                        <th style="min-width: 70px;">請求書</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+            <div id="emptyMessage" class="empty-message">
+                まだデータがありません。上のフォームから追加してください。
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
