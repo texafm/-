@@ -17,6 +17,7 @@ body {
     padding: 30px;
     max-width: 100%;
     margin: 0 auto;
+    position: relative;
 }
 
 h1 {
@@ -37,6 +38,35 @@ h1 {
 .header-controls button {
     padding: 8px 15px;
     font-size: 12px;
+}
+
+/* ========== ローディング ========== */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #e0e0e0;
+    border-top: 5px solid #4CAF50;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* ========== 入力セクション ========== */
@@ -117,7 +147,7 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 0;
-    min-width: 2200px;
+    min-width: 2000px;
 }
 
 /* ========== テーブルヘッダー ========== */
@@ -213,18 +243,6 @@ td:nth-child(3) {
     z-index: 5;
 }
 
-td:nth-child(4),
-td:nth-child(5),
-td:nth-child(6) {
-    text-align: center;
-    min-width: 90px;
-}
-
-td:nth-child(7) {
-    min-width: 50px;
-    background-color: #f9f9f9;
-}
-
 tr:nth-child(even) {
     background-color: #fafafa;
 }
@@ -241,19 +259,19 @@ tr:nth-child(even) td:nth-child(3) {
 
 /* ========== 業者欄グループ ========== */
 .vendor-group-1 {
-    border-right: 3px solid #ddd;
+    border-left: 3px solid #4CAF50;
 }
 
 .vendor-group-2 {
-    border-right: 3px solid #ddd;
+    border-left: 3px solid #4CAF50;
 }
 
 .vendor-group-3 {
-    border-right: 3px solid #e0e0e0;
+    border-left: 3px solid #4CAF50;
 }
 
 /* ========== 日付入力 ========== */
-input[type="date"] {
+td input[type="date"] {
     width: 95%;
     padding: 6px;
     border: 1px solid #ddd;
@@ -286,12 +304,18 @@ input[type="date"] {
 
 .export-btn {
     background-color: #2196F3;
-    padding: 8px 15px;
-    font-size: 12px;
 }
 
 .export-btn:hover {
     background-color: #0b7dda;
+}
+
+.refresh-btn {
+    background-color: #ff9800;
+}
+
+.refresh-btn:hover {
+    background-color: #e68900;
 }
 
 /* ========== 空メッセージ ========== */
@@ -309,7 +333,6 @@ input[type="date"] {
 .subject-tooltip {
     cursor: help;
     text-decoration: underline dotted;
-    word-break: break-all;
 }
 
 .save-status {
@@ -330,4 +353,10 @@ input[type="date"] {
     background-color: #d1ecf1;
     color: #0c5460;
     border: 1px solid #bee5eb;
+}
+
+.save-status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
 }

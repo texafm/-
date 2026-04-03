@@ -1,117 +1,97 @@
+// ========== 設定 ==========
+// ⚠️ 以下のURLを、あなたのGoogle Apps ScriptのURLに置き換えてください
+const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+
 let rowCount = 0;
 let sortColumn = null;
 let sortDirection = 'asc';
-const STORAGE_KEY = 'quotation_system_data';
 
-const customerColumns = [
-    { name: '注文書提出', index: 7 },
-    { name: '注文書受領', index: 8 },
-    { name: '請書依頼', index: 9 },
-    { name: '請書スキャン', index: 10 },
-    { name: '請書提出', index: 11 }
-];
-
-const vendorColumns = [
-    { name: '注文書①', index: 12 },
-    { name: '請書受領①', index: 13 },
-    { name: '請求書①', index: 14 },
-    { name: '注文書②', index: 15 },
-    { name: '請書受領②', index: 16 },
-    { name: '請求書②', index: 17 },
-    { name: '注文書③', index: 18 },
-    { name: '請書受領③', index: 19 },
-    { name: '請求書③', index: 20 }
-];
-
-// ========== データ保存機能 ==========
-function saveToLocalStorage() {
-    const data = [];
-    const rows = document.querySelectorAll('#tableBody tr');
+// ========== API通信 ==========
+async function callAPI(params) {
+    const url = new URL(API_URL);
+    Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
     
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        const rowData = {
-            estimateNo: cells[1].textContent,
-            subject: cells[2].textContent,
-            billingMonth: cells[3].textContent,
-            completionDate: cells[4].textContent,
-            salePrice: cells[5].textContent,
-            dates: []
-        };
-
-        // 日付データを保存
-        for (let i = 7; i < cells.length - 1; i++) {
-            const input = cells[i].querySelector('input[type="date"]');
-            rowData.dates.push(input ? input.value : '');
-        }
-
-        data.push(rowData);
-    });
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    showSaveStatus();
+    try {
+        const response = await fetch(url);
+        return await response.json();
+    } catch (error) {
+        console.error('API Error:', error);
+        showStatus('通信エラーが発生しました', 'error');
+        return null;
+    }
 }
 
-function loadFromLocalStorage() {
-    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+// ========== データ読み込み ==========
+async function loadData() {
+    showLoading(true);
     
-    data.forEach(rowData => {
-        rowCount++;
+    const result = await callAPI({ action: 'getData' });
+    
+    if (result && result.success) {
         const tableBody = document.getElementById('tableBody');
-        const newRow = document.createElement('tr');
-        newRow.id = `row-${rowCount}`;
-        newRow.dataset.rowNum = rowCount;
-
-        let rowHTML = `
-            <td class="row-number" data-sort-value="${rowCount}">${rowCount}</td>
-            <td data-sort-value="${rowData.estimateNo}">${escapeHtml(rowData.estimateNo)}</td>
-            <td class="subject-tooltip" title="${escapeHtml(rowData.subject)}" data-sort-value="${rowData.subject}">${escapeHtml(rowData.subject)}</td>
-            <td data-sort-value="${rowData.billingMonth}">${rowData.billingMonth}</td>
-            <td data-sort-value="${rowData.completionDate}">${rowData.completionDate}</td>
-            <td data-sort-value="${rowData.salePrice}">${rowData.salePrice}</td>
-            <td></td>
-        `;
-
-        // 日付データを復元
-        rowData.dates.forEach((dateValue, index) => {
-            const vendorNum = Math.floor(index / 3) + 1;
-            let classStr = 'vendor-group-' + vendorNum;
-            if (index % 3 === 2) classStr += ' vendor-last';
-
-            rowHTML += `
-                <td class="${classStr}">
-                    <input type="date" class="date-input" data-row="${rowCount}" data-column="${index + 7}" value="${dateValue}" onchange="saveData()">
-                </td>
-            `;
+        tableBody.innerHTML = '';
+        rowCount = 0;
+        
+        // ヘッダー行をスキップ
+        const data = result.data.slice(1);
+        
+        data.forEach((rowData, index) => {
+            if (rowData[0]) { // 空行をスキップ
+                rowCount++;
+                createTableRow(rowData, index + 2); // +2はヘッダー行とインデックス調整
+            }
         });
+        
+        updateEmptyMessage();
+        showStatus('✅ データを読み込みました', 'success');
+    }
+    
+    showLoading(false);
+}
 
+function createTableRow(rowData, sheetRow) {
+    const tableBody = document.getElementById('tableBody');
+    const newRow = document.createElement('tr');
+    newRow.id = `row-${rowCount}`;
+    newRow.dataset.sheetRow = sheetRow;
+
+    let rowHTML = `
+        <td class="row-number">${rowData[0]}</td>
+        <td>${escapeHtml(rowData[1] || '')}</td>
+        <td class="subject-tooltip" title="${escapeHtml(rowData[2] || '')}">${escapeHtml(rowData[2] || '')}</td>
+        <td>${rowData[3] || ''}</td>
+        <td>${rowData[4] || ''}</td>
+        <td>${rowData[5] || ''}</td>
+    `;
+
+    // 日付列（列7から列20まで）
+    for (let i = 6; i < 20; i++) {
+        const vendorNum = Math.floor((i - 11) / 3) + 1;
+        let classStr = '';
+        if (i >= 11) {
+            classStr = 'vendor-group-' + vendorNum;
+        }
+        
         rowHTML += `
-            <td>
-                <button class="delete-btn" onclick="deleteRow(${rowCount})">削除</button>
+            <td class="${classStr}">
+                <input type="date" value="${rowData[i] || ''}" 
+                       onchange="updateCell(${sheetRow}, ${i + 1}, this.value)">
             </td>
         `;
+    }
 
-        newRow.innerHTML = rowHTML;
-        tableBody.appendChild(newRow);
-    });
+    rowHTML += `
+        <td>
+            <button class="delete-btn" onclick="deleteRow(${sheetRow}, this)">削除</button>
+        </td>
+    `;
 
-    updateEmptyMessage();
+    newRow.innerHTML = rowHTML;
+    tableBody.appendChild(newRow);
 }
 
-function showSaveStatus() {
-    const statusEl = document.getElementById('saveStatus');
-    statusEl.style.display = 'block';
-    setTimeout(() => {
-        statusEl.style.display = 'none';
-    }, 3000);
-}
-
-function saveData() {
-    saveToLocalStorage();
-}
-
-// ========== 行追加機能 ==========
-function addRow() {
+// ========== 行追加 ==========
+async function addRow() {
     const estimateNo = document.getElementById('estimateNo').value.trim();
     const subject = document.getElementById('subject').value.trim();
     const billingMonth = document.getElementById('billingMonth').value;
@@ -123,79 +103,80 @@ function addRow() {
         return;
     }
 
+    showLoading(true);
+
     rowCount++;
-    const tableBody = document.getElementById('tableBody');
-    const newRow = document.createElement('tr');
-    newRow.id = `row-${rowCount}`;
-    newRow.dataset.rowNum = rowCount;
+    const formattedMonth = formatMonth(billingMonth);
+    const formattedDate = formatDate(completionDate);
+    const formattedPrice = parseInt(salePrice).toLocaleString() + '円';
 
-    let rowHTML = `
-        <td class="row-number" data-sort-value="${rowCount}">${rowCount}</td>
-        <td data-sort-value="${estimateNo}">${escapeHtml(estimateNo)}</td>
-        <td class="subject-tooltip" title="${escapeHtml(subject)}" data-sort-value="${subject}">${escapeHtml(subject)}</td>
-        <td data-sort-value="${billingMonth}">${formatMonth(billingMonth)}</td>
-        <td data-sort-value="${completionDate}">${formatDate(completionDate)}</td>
-        <td data-sort-value="${parseInt(salePrice)}">${parseInt(salePrice).toLocaleString()}円</td>
-        <td></td>
-    `;
+    const rowData = [
+        rowCount,
+        estimateNo,
+        subject,
+        formattedMonth,
+        formattedDate,
+        formattedPrice,
+        '', '', '', '', '', '', '', '', '', '', '', '', '', '' // 日付列（14列分）
+    ];
 
-    customerColumns.forEach((col) => {
-        rowHTML += `
-            <td>
-                <input type="date" class="date-input" data-row="${rowCount}" data-column="${col.index}" onchange="saveData()">
-            </td>
-        `;
+    const result = await callAPI({
+        action: 'addRow',
+        rowData: JSON.stringify(rowData)
     });
 
-    vendorColumns.forEach((col, index) => {
-        const vendorNum = Math.floor(index / 3) + 1;
-        let classStr = 'vendor-group-' + vendorNum;
-        if (index % 3 === 2) classStr += ' vendor-last';
+    if (result && result.success) {
+        // フォームをクリア
+        document.getElementById('estimateNo').value = '';
+        document.getElementById('subject').value = '';
+        document.getElementById('billingMonth').value = '';
+        document.getElementById('completionDate').value = '';
+        document.getElementById('salePrice').value = '';
         
-        rowHTML += `
-            <td class="${classStr}">
-                <input type="date" class="date-input" data-row="${rowCount}" data-column="${col.index}" onchange="saveData()">
-            </td>
-        `;
-    });
+        // データを再読み込み
+        await loadData();
+        showStatus('✅ データを追加しました', 'success');
+    }
 
-    rowHTML += `
-        <td>
-            <button class="delete-btn" onclick="deleteRow(${rowCount})">削除</button>
-        </td>
-    `;
-
-    newRow.innerHTML = rowHTML;
-    tableBody.appendChild(newRow);
-
-    updateEmptyMessage();
-    saveData();
-
-    document.getElementById('estimateNo').value = '';
-    document.getElementById('subject').value = '';
-    document.getElementById('billingMonth').value = '';
-    document.getElementById('completionDate').value = '';
-    document.getElementById('salePrice').value = '';
+    showLoading(false);
     document.getElementById('estimateNo').focus();
 }
 
-function deleteRow(rowNum) {
-    if (confirm('この行を削除しますか？')) {
-        const row = document.getElementById(`row-${rowNum}`);
-        row.remove();
-        updateEmptyMessage();
-        saveData();
+// ========== セル更新 ==========
+async function updateCell(row, col, value) {
+    showStatus('💾 保存中...', 'info');
+    
+    const result = await callAPI({
+        action: 'updateCell',
+        row: row,
+        col: col,
+        value: value
+    });
+
+    if (result && result.success) {
+        showStatus('✅ 保存しました', 'success');
     }
 }
 
-function updateEmptyMessage() {
-    const tableBody = document.getElementById('tableBody');
-    const emptyMessage = document.getElementById('emptyMessage');
-    if (tableBody.children.length === 0) {
-        emptyMessage.style.display = 'block';
-    } else {
-        emptyMessage.style.display = 'none';
+// ========== 行削除 ==========
+async function deleteRow(sheetRow, button) {
+    if (!confirm('この行を削除しますか？')) {
+        return;
     }
+
+    showLoading(true);
+
+    const result = await callAPI({
+        action: 'deleteRow',
+        row: sheetRow
+    });
+
+    if (result && result.success) {
+        await loadData();
+        showStatus('✅ 削除しました', 'success');
+    }
+
+    showLoading(false);
 }
 
 // ========== ソート機能 ==========
@@ -214,23 +195,23 @@ function sortTable(columnIndex) {
         const aCell = a.querySelectorAll('td')[columnIndex];
         const bCell = b.querySelectorAll('td')[columnIndex];
 
-        let aValue = aCell.dataset.sortValue || aCell.textContent.trim();
-        let bValue = bCell.dataset.sortValue || bCell.textContent.trim();
+        let aValue = aCell.textContent.trim();
+        let bValue = bCell.textContent.trim();
 
-        if (!isNaN(aValue) && !isNaN(bValue)) {
-            aValue = parseFloat(aValue);
-            bValue = parseFloat(bValue);
+        // 数値判定
+        const aNum = parseFloat(aValue.replace(/[^0-9.-]/g, ''));
+        const bNum = parseFloat(bValue.replace(/[^0-9.-]/g, ''));
+
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+            aValue = aNum;
+            bValue = bNum;
         } else {
             aValue = aValue.toLowerCase();
             bValue = bValue.toLowerCase();
         }
 
-        if (aValue < bValue) {
-            return sortDirection === 'asc' ? -1 : 1;
-        }
-        if (aValue > bValue) {
-            return sortDirection === 'asc' ? 1 : -1;
-        }
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
         return 0;
     });
 
@@ -269,30 +250,33 @@ function exportToCSV() {
     const csv = csvData.join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute('href', url);
-    link.setAttribute('download', `quotation_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(blob);
+    link.download = `quotation_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-    document.body.removeChild(link);
 }
 
-// ========== すべてのデータを削除 ==========
-function clearAllData() {
-    if (confirm('本当にすべてのデータを削除しますか？\n\nこの操作は取り消せません。')) {
-        if (confirm('もう一度確認します。本当に削除しますか？')) {
-            localStorage.removeItem(STORAGE_KEY);
-            document.getElementById('tableBody').innerHTML = '';
-            rowCount = 0;
-            updateEmptyMessage();
-            alert('すべてのデータが削除されました。');
-        }
-    }
+// ========== ユーティリティ ==========
+function showLoading(show) {
+    document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
 }
 
-// ========== ユーティリティ関数 ==========
+function showStatus(message, type) {
+    const statusEl = document.getElementById('saveStatus');
+    statusEl.textContent = message;
+    statusEl.className = 'save-status ' + type;
+    statusEl.style.display = 'block';
+    
+    setTimeout(() => {
+        statusEl.style.display = 'none';
+    }, 3000);
+}
+
+function updateEmptyMessage() {
+    const tableBody = document.getElementById('tableBody');
+    const emptyMessage = document.getElementById('emptyMessage');
+    emptyMessage.style.display = tableBody.children.length === 0 ? 'block' : 'none';
+}
+
 function formatMonth(monthString) {
     if (!monthString) return '';
     const [year, month] = monthString.split('-');
@@ -328,6 +312,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    loadFromLocalStorage();
-    updateEmptyMessage();
+    // 初回データ読み込み
+    loadData();
 });
